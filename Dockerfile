@@ -17,7 +17,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
 
 RUN export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true \
     && apt-get --quiet update \
-    && apt-get --quiet install --yes --no-install-recommends \
+    && apt-get --quiet install --yes \
     curl \
     git \
     vim \
