@@ -1,0 +1,78 @@
+name: Create and publish a Docker image
+
+on: [push]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  TZ: Asia/Tokyo
+  TIMESTAMP: \033[36m$(date '+%Y-%m-%d %H:%M:%S')\033[0m # \033[36m Cyan
+  TIMESTAMP_ELAPSE: \033[36m$(date '+%Y-%m-%d %H:%M:%S')\033[0m(Elapsed time since job start - \033[36m$(( $(date +%s) - $START_TIME )) seconds\033[0m)
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set start time
+        id: starttime
+        run: |
+          echo "START_TIME=$(date +%s)" >> $GITHUB_ENV
+          echo -e "Job started at: ${{ env.TIMESTAMP }}"
+
+      - name: Display comprehensive environment information
+        run: |
+          echo -e "${{ env.TIMESTAMP }}"
+          echo "GitHub Event Name: ${{ github.event_name }}"
+          echo "GitHub Action Run Number: ${{ github.run_number }}"
+          echo "GitHub Action Run ID: ${{ github.run_id }}"
+          echo "Workflow Name: ${{ github.workflow }}"
+          echo "GitHub Event Type: ${{ github.event_name }}"
+          echo "GitHub SHA: ${{ github.sha }}"
+          echo "GitHub Head Ref: ${{ github.head_ref }}"
+          echo "GitHub Base Ref: ${{ github.base_ref }}"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "GitHub Actor: ${{ github.actor }}"
+          echo "GitHub Repository: ${{ github.repository }}"
+          echo "GitHub Server URL: ${{ github.server_url }}"
+          echo "GitHub API URL: ${{ github.api_url }}"
+          echo "GitHub GraphQL API URL: ${{ github.graphql_url }}"
+          echo "GitHub Reference: ${{ github.ref }}"
+          echo "GitHub Workspace: ${{ github.workspace }}"
+          echo "Runner Temp Directory: ${{ runner.temp }}"
+          echo "Job Status: ${{ job.status }}"
+          echo "Registry URL: ${{ env.REGISTRY }}"
+          echo "Image Name: ${{ env.IMAGE_NAME }}"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build Docker image
+        run: |
+          echo -e "Start Building Docker image - ${{ env.TIMESTAMP_ELAPSE }}"
+          docker build -t hikari-clang .
+          echo -e "Finished Building Docker image - ${{ env.TIMESTAMP_ELAPSE }}"
+
+      - name: Build (cached) and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Elapsed time
+        run: echo -e "Complete job - ${{ env.TIMESTAMP_ELAPSE }}"
